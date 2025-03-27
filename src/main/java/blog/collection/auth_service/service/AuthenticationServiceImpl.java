@@ -150,46 +150,46 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-    @Override
-    @Transactional
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(userRequest);
-        String provider = userRequest.getClientRegistration().getRegistrationId();
-        String email = oAuth2User.getAttribute("email");
-        String name = oAuth2User.getAttribute("name");
-        String providerUserId = oAuth2User.getAttribute("sub") != null ? oAuth2User.getAttribute("sub") : oAuth2User.getAttribute("id");
-
-        User user = createUserIfNotExisted(email, name, oAuth2User.getAttribute("picture"));
-
-        createUserAuthMethodIfNotExisted(AuthProvider.valueOf(provider.toUpperCase()), user, providerUserId, email);
-
-        return new DefaultOAuth2User(Collections.singletonList(new SimpleGrantedAuthority(RoleName.ROLE_USER.name())), oAuth2User.getAttributes(), "email");
-    }
-
-    private User createUserIfNotExisted(String email, String name, String avatar) {
-        return userRepository.findByEmail(email).orElseGet(() -> {
-            User newUser = new User();
-            newUser.setEmail(email);
-            newUser.setName(name);
-            newUser.setAvatar(avatar);
-            newUser.setStatus(true);
-            newUser.setCreatedAt(java.time.LocalDateTime.now().toString());
-            newUser.setUpdateAt(java.time.LocalDateTime.now().toString());
-            return userRepository.save(newUser);
-        });
-    }
-
-    private void createUserAuthMethodIfNotExisted(AuthProvider authProvider, User user, String providerUserId, String email) {
-        userAuthMethodRepository.findByProviderUserIdAndAuthProvider(providerUserId, authProvider).orElseGet(() -> {
-            UserAuthMethod newUserAuthMethod = new UserAuthMethod();
-            newUserAuthMethod.setAuthProvider(authProvider);
-            newUserAuthMethod.setRole(roleRepository.findByRoleName(RoleName.ROLE_USER).orElseThrow(() -> new RuntimeException("Role not found")));
-            newUserAuthMethod.setUsername(email.split("@")[0]);
-            newUserAuthMethod.setUser(user);
-            newUserAuthMethod.setProviderUserId(providerUserId);
-            return userAuthMethodRepository.save(newUserAuthMethod);
-        });
-    }
+//    @Override
+//    @Transactional
+//    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+//        OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(userRequest);
+//        String provider = userRequest.getClientRegistration().getRegistrationId();
+//        String email = oAuth2User.getAttribute("email");
+//        String name = oAuth2User.getAttribute("name");
+//        String providerUserId = oAuth2User.getAttribute("sub") != null ? oAuth2User.getAttribute("sub") : oAuth2User.getAttribute("id");
+//
+//        User user = createUserIfNotExisted(email, name, oAuth2User.getAttribute("picture"));
+//
+//        createUserAuthMethodIfNotExisted(AuthProvider.valueOf(provider.toUpperCase()), user, providerUserId, email);
+//
+//        return new DefaultOAuth2User(Collections.singletonList(new SimpleGrantedAuthority(RoleName.ROLE_USER.name())), oAuth2User.getAttributes(), "email");
+//    }
+//
+//    private User createUserIfNotExisted(String email, String name, String avatar) {
+//        return userRepository.findByEmail(email).orElseGet(() -> {
+//            User newUser = new User();
+//            newUser.setEmail(email);
+//            newUser.setName(name);
+//            newUser.setAvatar(avatar);
+//            newUser.setStatus(true);
+//            newUser.setCreatedAt(java.time.LocalDateTime.now().toString());
+//            newUser.setUpdateAt(java.time.LocalDateTime.now().toString());
+//            return userRepository.save(newUser);
+//        });
+//    }
+//
+//    private void createUserAuthMethodIfNotExisted(AuthProvider authProvider, User user, String providerUserId, String email) {
+//        userAuthMethodRepository.findByProviderUserIdAndAuthProvider(providerUserId, authProvider).orElseGet(() -> {
+//            UserAuthMethod newUserAuthMethod = new UserAuthMethod();
+//            newUserAuthMethod.setAuthProvider(authProvider);
+//            newUserAuthMethod.setRole(roleRepository.findByRoleName(RoleName.ROLE_USER).orElseThrow(() -> new RuntimeException("Role not found")));
+//            newUserAuthMethod.setUsername(email.split("@")[0]);
+//            newUserAuthMethod.setUser(user);
+//            newUserAuthMethod.setProviderUserId(providerUserId);
+//            return userAuthMethodRepository.save(newUserAuthMethod);
+//        });
+//    }
 
     public BaseResponse<String> handleLoginSuccessByO2Auth(OAuth2User oAuth2User) {
         String providerUserId = oAuth2User.getAttribute("sub") != null ? oAuth2User.getAttribute("sub") : oAuth2User.getAttribute("id");

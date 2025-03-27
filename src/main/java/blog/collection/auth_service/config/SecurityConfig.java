@@ -1,10 +1,11 @@
 package blog.collection.auth_service.config;
 
-import blog.collection.auth_service.security.BlackListToken;
+//import blog.collection.auth_service.security.BlackListToken;
 import blog.collection.auth_service.security.CustomUserDetailService;
 //import blog.collection.auth_service.security.JwtAuthenticationFilter;
 import blog.collection.auth_service.security.JwtTokenProvider;
 import blog.collection.auth_service.service.AuthenticationService;
+import blog.collection.auth_service.service.OAuth2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -46,9 +47,9 @@ public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
 
-    private final BlackListToken blackListToken;
+//    private final BlackListToken blackListToken;
 
-    private final AuthenticationService authenticationService;
+    private final OAuth2Service oAuth2Service;
 
 //    @Bean
 //    public JwtAuthenticationFilter jwtAuthenticationFilter() {
@@ -83,7 +84,7 @@ public class SecurityConfig {
                 )
                 // Cấu hình OAuth2 Login
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(authenticationService))
+                        .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2Service))
                         .defaultSuccessUrl("/auth/success", true)
                         .failureUrl("/auth/failure")
                 )
