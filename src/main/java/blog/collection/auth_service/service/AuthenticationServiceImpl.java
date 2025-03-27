@@ -4,18 +4,22 @@ import blog.collection.auth_service.common.AuthProvider;
 import blog.collection.auth_service.common.CommonString;
 import blog.collection.auth_service.common.RoleName;
 import blog.collection.auth_service.dto.requestDTO.AddLocalAuthenticationUserRequestDTO;
+import blog.collection.auth_service.dto.requestDTO.LoginDTO;
 import blog.collection.auth_service.dto.requestDTO.UserVerificationData;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.AddLocalAuthenticationUserResponseDTO;
+import blog.collection.auth_service.dto.responseDTO.authResponseDTO.LocalLoginResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
 import blog.collection.auth_service.entity.User;
 import blog.collection.auth_service.entity.UserAuthMethod;
 import blog.collection.auth_service.exception.CannotSendMessageException;
 import blog.collection.auth_service.exception.CreatedLocalUserFailException;
 import blog.collection.auth_service.exception.InputValidationException;
+import blog.collection.auth_service.exception.UsernameNotFoundException;
 import blog.collection.auth_service.mapper.Mapper;
 import blog.collection.auth_service.repository.RoleRepository;
 import blog.collection.auth_service.repository.UserAuthMethodRepository;
 import blog.collection.auth_service.repository.UserRepository;
+import blog.collection.auth_service.security.CustomUserDetail;
 import blog.collection.auth_service.security.JwtTokenProvider;
 import blog.collection.auth_service.utils.EmailUtils;
 import blog.collection.auth_service.utils.Validate;
@@ -25,7 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -50,10 +58,37 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final Validate validate;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final AuthenticationManager authenticationManager;
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
 
     private void sendVerificationEmail(User user, String username, String password) throws MessagingException {
         emailUtils.sendToVerifyEmail(user, username, password);
+    }
+
+    public BaseResponse<LocalLoginResponseDTO> loginLocalUser(LoginDTO loginDTO) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        CustomUserDetail customUserDetail = (CustomUserDetail) authentication.getPrincipal();
+        UserAuthMethod userInfo = userAuthMethodRepository
+                .findByUsernameAndAuthProvider(loginDTO.getUsername(), AuthProvider.LOCAL)
+                .orElseThrow(() -> new UsernameNotFoundException(CommonString.USERNAME_NOT_FOUND));
+
+        String token = tokenProvider.generateToken(
+                userInfo.getUsername(),
+                AuthProvider.LOCAL,
+                userInfo.getUser().getId(),
+                userInfo.getId()
+        );
+        String refreshToken = tokenProvider.generateRefreshToken(
+                userInfo.getUsername(),
+                AuthProvider.LOCAL,
+                userInfo.getUser().getId(),
+                userInfo.getId()
+        );
+        LocalLoginResponseDTO localLoginResponseDTO = new LocalLoginResponseDTO(userInfo.getUsername(), token, refreshToken);
+        return new BaseResponse<>(HttpStatus.OK.value(), "Login successful", localLoginResponseDTO);
     }
 
     public BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO) {
@@ -157,7 +192,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     public BaseResponse<String> handleLoginSuccessByO2Auth(OAuth2User oAuth2User) {
-        String token = tokenProvider.generateToken(oAuth2User.getAttribute("email"), AuthProvider.GOOGLE);
+        String providerUserId = oAuth2User.getAttribute("sub") != null ? oAuth2User.getAttribute("sub") : oAuth2User.getAttribute("id");
+        UserAuthMethod userAuthMethod = userAuthMethodRepository.findByProviderUserIdAndAuthProvider(providerUserId, AuthProvider.GOOGLE).orElseThrow(() -> new OAuth2AuthenticationException(CommonString.CAN_NOT_LOGIN_BY_GOOGLE));
+        String token = tokenProvider.generateToken(userAuthMethod.getUsername(), AuthProvider.GOOGLE, userAuthMethod.getUser().getId(), userAuthMethod.getId());
         return new BaseResponse<>(HttpStatus.OK.value(), CommonString.LOGIN_SUCCESSFULLY, token);
     }
 }

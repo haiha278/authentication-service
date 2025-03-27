@@ -2,7 +2,7 @@ package blog.collection.auth_service.config;
 
 import blog.collection.auth_service.security.BlackListToken;
 import blog.collection.auth_service.security.CustomUserDetailService;
-import blog.collection.auth_service.security.JwtAuthenticationFilter;
+//import blog.collection.auth_service.security.JwtAuthenticationFilter;
 import blog.collection.auth_service.security.JwtTokenProvider;
 import blog.collection.auth_service.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +29,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -49,10 +50,10 @@ public class SecurityConfig {
 
     private final AuthenticationService authenticationService;
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenProvider, customUserDetailService, blackListToken);
-    }
+//    @Bean
+//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+//        return new JwtAuthenticationFilter(tokenProvider, customUserDetailService, blackListToken);
+//    }
 
     @Bean
     public AuthenticationManager jwtAuthenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -82,18 +83,18 @@ public class SecurityConfig {
                 )
                 // Cấu hình OAuth2 Login
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(authenticationService)) // Đăng ký OAuth2UserService
+                        .userInfoEndpoint(userInfo -> userInfo.userService(authenticationService))
                         .defaultSuccessUrl("/auth/success", true)
                         .failureUrl("/auth/failure")
                 )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .logout(logout -> logout
-                        .logoutUrl("/auth/logout")
-                        .logoutSuccessHandler(logoutSuccessHandler())
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                )
+//                .authenticationProvider(authenticationProvider())
+//                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+//                .logout(logout -> logout
+//                        .logoutUrl("/auth/logout")
+//                        .logoutSuccessHandler(logoutSuccessHandler())
+//                        .invalidateHttpSession(true)
+//                        .clearAuthentication(true)
+//                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 );
@@ -104,7 +105,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8080")); // Thay đổi theo frontend của bạn
+        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -115,19 +116,19 @@ public class SecurityConfig {
     }
 
     // Xử lý khi logout thành công
-    @Bean
-    public LogoutSuccessHandler logoutSuccessHandler() {
-        return (request, response, authentication) -> {
-            String token = tokenProvider.getTokenFromRequest(request);
-            if (token != null) {
-                long timeRemaining = tokenProvider.getTimeRemainingOfToken(token);
-                blackListToken.addTokenIntoBlackList(token, timeRemaining);
-            }
-            response.setStatus(HttpStatus.OK.value());
-            response.getWriter().write("Logout successful");
-            SecurityContextHolder.clearContext();
-        };
-    }
+//    @Bean
+//    public LogoutSuccessHandler logoutSuccessHandler() {
+//        return (request, response, authentication) -> {
+//            String token = tokenProvider.getTokenFromRequest(request);
+//            if (token != null) {
+//                long timeRemaining = tokenProvider.getTimeRemainingOfToken(token);
+//                blackListToken.addTokenIntoBlackList(token, timeRemaining);
+//            }
+//            response.setStatus(HttpStatus.OK.value());
+//            response.getWriter().write("Logout successful");
+//            SecurityContextHolder.clearContext();
+//        };
+//    }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -135,5 +136,10 @@ public class SecurityConfig {
         authenticationProvider.setUserDetailsService(customUserDetailService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return authenticationProvider;
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

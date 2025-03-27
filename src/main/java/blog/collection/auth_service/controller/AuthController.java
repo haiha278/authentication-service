@@ -8,6 +8,7 @@ import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ChangePasswo
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.LocalLoginResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ResetPasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
+import blog.collection.auth_service.entity.User;
 import blog.collection.auth_service.security.CustomUserDetail;
 import blog.collection.auth_service.security.JwtTokenProvider;
 import blog.collection.auth_service.service.AuthenticationService;
@@ -22,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/auth")
@@ -29,20 +31,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider tokenProvider;
+//    private final AuthenticationManager authenticationManager;
+//    private final JwtTokenProvider tokenProvider;
     private final AuthenticationService authenticationService;
     private final UserService userService;
+    private final RestTemplate restTemplate;
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<LocalLoginResponseDTO>> login(@RequestBody LoginDTO loginDTO) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword()));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        CustomUserDetail customUserDetail = (CustomUserDetail) authentication.getPrincipal();
-        String token = tokenProvider.generateToken(customUserDetail.getUsername(), AuthProvider.LOCAL);
-        String refreshToken = tokenProvider.generateRefreshToken(customUserDetail.getUsername(), AuthProvider.LOCAL);
-        LocalLoginResponseDTO localLoginResponseDTO = new LocalLoginResponseDTO(tokenProvider.getUsernameFromToken(token), token, refreshToken);
-        return new ResponseEntity<>(new BaseResponse<>(HttpStatus.OK.value(), CommonString.LOGIN_SUCCESSFULLY, localLoginResponseDTO), HttpStatus.OK);
+        return new ResponseEntity<>(authenticationService.loginLocalUser(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/sign-up")
@@ -80,5 +77,26 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<BaseResponse<ChangePasswordResponseDTO>> changePassword(@RequestBody ChangePasswordDataDTO changePasswordDataDTO) {
         return new ResponseEntity<>(userService.changePassword(changePasswordDataDTO), HttpStatus.OK);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<BaseResponse<String>> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "Invalid Authorization header", null));
+        }
+
+        String token = authorizationHeader.substring(7);
+
+        // Gọi API của Gateway Service để blacklist token
+        String gatewayUrl = "http://localhost:8082/blacklist-token";
+        ResponseEntity<String> response = restTemplate.postForEntity(gatewayUrl, token, String.class);
+
+        if (response.getStatusCode() == HttpStatus.OK) {
+            return ResponseEntity.ok(new BaseResponse<>(HttpStatus.OK.value(), "Logout successful", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to logout", null));
+        }
     }
 }
