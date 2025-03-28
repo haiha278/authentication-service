@@ -94,22 +94,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO) {
         try {
             validate.validateRegistrationInput(addLocalAuthenticationUserRequestDTO);
-        } catch (InputValidationException e) {
-            return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), e.getMessage());
-        }
-        if (userAuthMethodRepository.existsByUsername(addLocalAuthenticationUserRequestDTO.getUsername())) {
-            throw new CreatedLocalUserFailException(CommonString.USERNAME_IS_EXISTED);
-        }
-        String userEmail = addLocalAuthenticationUserRequestDTO.getEmail();
-        if (userRepository.existsByEmail(userEmail) &&
-                userAuthMethodRepository.existsByAuthProviderAndUser(AuthProvider.LOCAL, userRepository.findByEmail(userEmail)
-                        .orElseThrow(() -> new CreatedLocalUserFailException(CommonString.CAN_NOT_CREATE_NEW_USER)))) {
-            throw new CreatedLocalUserFailException(CommonString.EMAIL_IS_EXISTED);
-        }
-        try {
+
+            if (userAuthMethodRepository.existsByUsername(addLocalAuthenticationUserRequestDTO.getUsername())) {
+                throw new CreatedLocalUserFailException(CommonString.USERNAME_IS_EXISTED);
+            }
+
+            String userEmail = addLocalAuthenticationUserRequestDTO.getEmail();
+            if (userRepository.existsByEmail(userEmail)) {
+                if (userAuthMethodRepository.existsByAuthProviderAndUser(AuthProvider.LOCAL, userRepository.findByEmail(userEmail).get())) {
+                    throw new CreatedLocalUserFailException(CommonString.EMAIL_IS_EXISTED);
+                }
+            }
+
             User user = Mapper.mapDtoToEntity(addLocalAuthenticationUserRequestDTO, User.class);
             sendVerificationEmail(user, addLocalAuthenticationUserRequestDTO.getUsername(), addLocalAuthenticationUserRequestDTO.getPasswordHash());
             return new BaseResponse<>(HttpStatus.OK.value(), HttpStatus.OK.getReasonPhrase(), CommonString.SEND_MESSAGE_TO_EMAIL_SUCCESSFULLY);
+        } catch (InputValidationException e) {
+            return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), e.getMessage());
         } catch (MessagingException e) {
             throw new CannotSendMessageException(CommonString.CAN_NOT_SEND_EMAIL);
         }
