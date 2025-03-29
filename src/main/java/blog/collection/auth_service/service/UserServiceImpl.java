@@ -37,8 +37,6 @@ public class UserServiceImpl implements UserService {
     private final Validate validate;
     private final PasswordEncoder passwordEncoder;
 
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     @Override
     public BaseResponse<String> sendEmailToResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO) {
         try {
@@ -65,16 +63,14 @@ public class UserServiceImpl implements UserService {
         UserAuthMethod response = userAuthMethodRepository.save(userAuthMethod);
 
         ResetPasswordResponseDTO resetPasswordResponseDTO = ResetPasswordResponseDTO.builder()
-                .updateAt(LocalDateTime.parse(response.getUpdateAt(), formatter))
+                .updateAt(LocalDateTime.parse(response.getUpdateAt(), DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .userId(response.getId())
                 .build();
         return new BaseResponse<>(HttpStatus.OK.value(), CommonString.RESET_PASSWORD_SUCCESSFULLY, resetPasswordResponseDTO);
     }
 
     @Override
-    public BaseResponse<ChangePasswordResponseDTO> changePassword(ChangePasswordDataDTO data) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+    public BaseResponse<ChangePasswordResponseDTO> changePassword(ChangePasswordDataDTO data, String username) {
         UserAuthMethod userAuthMethod = userAuthMethodRepository.findByUsernameAndAuthProvider(username, AuthProvider.LOCAL)
                 .orElseThrow(() -> new UserIsNotPresentException(CommonString.CAN_NOT_FIND_ACCOUNT));
 
@@ -84,7 +80,7 @@ public class UserServiceImpl implements UserService {
         UserAuthMethod savedData = userAuthMethodRepository.save(userAuthMethod);
         ChangePasswordResponseDTO responseData = ChangePasswordResponseDTO.builder()
                 .id(savedData.getId())
-                .updateAt(LocalDateTime.parse(savedData.getUpdateAt(), formatter))
+                .updateAt(LocalDateTime.parse(savedData.getUpdateAt(), DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .build();
         return new BaseResponse<>(HttpStatus.OK.value(), CommonString.CHANGE_PASSWORD_SUCCESSFULLY, responseData);
     }

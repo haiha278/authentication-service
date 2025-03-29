@@ -12,5 +12,5 @@ public interface UserService {
 
     BaseResponse<ResetPasswordResponseDTO> resetPassword(ResetPasswordDataDTO resetPasswordDataDTO, String token);
 
-    BaseResponse<ChangePasswordResponseDTO> changePassword(ChangePasswordDataDTO data);
+    BaseResponse<ChangePasswordResponseDTO> changePassword(ChangePasswordDataDTO data, String username);
 }

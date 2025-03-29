@@ -31,7 +31,7 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class AuthController {
 
-//    private final AuthenticationManager authenticationManager;
+    //    private final AuthenticationManager authenticationManager;
 //    private final JwtTokenProvider tokenProvider;
     private final AuthenticationService authenticationService;
     private final UserService userService;
@@ -75,15 +75,14 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<BaseResponse<ChangePasswordResponseDTO>> changePassword(@RequestBody ChangePasswordDataDTO changePasswordDataDTO) {
-        return new ResponseEntity<>(userService.changePassword(changePasswordDataDTO), HttpStatus.OK);
+    public ResponseEntity<BaseResponse<ChangePasswordResponseDTO>> changePassword(@RequestHeader("X-Username") String username, @RequestBody ChangePasswordDataDTO changePasswordDataDTO) {
+        return new ResponseEntity<>(userService.changePassword(changePasswordDataDTO, username), HttpStatus.OK);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<BaseResponse<String>> logout(@RequestHeader("Authorization") String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "Invalid Authorization header", null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "Invalid Authorization header", null));
         }
 
         String token = authorizationHeader.substring(7);
@@ -95,8 +94,7 @@ public class AuthController {
         if (response.getStatusCode() == HttpStatus.OK) {
             return ResponseEntity.ok(new BaseResponse<>(HttpStatus.OK.value(), "Logout successful", null));
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to logout", null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to logout", null));
         }
     }
 }
