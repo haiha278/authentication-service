@@ -51,18 +51,6 @@ public class Validate {
         }
     }
 
-    public void validatePassword(String password) {
-        validateInputData(password, CommonString.PASSWORD_FORMAT, CommonString.WRONG_PASSWORD_FORMAT);
-    }
-
-    public void validatePhone(String phone) {
-        validateInputData(phone, CommonString.PHONE_REGEX, CommonString.WRONG_PHONE_FORMAT);
-    }
-
-    public void validateEmail(String email) {
-        validateInputData(email, CommonString.EMAIL_REGEX, CommonString.WRONG_EMAIL_FORMAT);
-    }
-
     public boolean validatePasswordMatching(String password1, String password2) {
         return password1.equals(password2);
     }

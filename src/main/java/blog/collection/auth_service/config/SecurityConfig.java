@@ -78,24 +78,16 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/auth/change-password").authenticated()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/blog-collection/auth/**").permitAll()
+                        .anyRequest().permitAll()
                 )
                 // Cấu hình OAuth2 Login
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2Service))
-                        .defaultSuccessUrl("/auth/success", true)
-                        .failureUrl("/auth/failure")
+                        .defaultSuccessUrl("/blog-collection/auth/success", true)
+                        .failureUrl("/blog-collection/auth/failure")
                 )
-//                .authenticationProvider(authenticationProvider())
-//                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-//                .logout(logout -> logout
-//                        .logoutUrl("/auth/logout")
-//                        .logoutSuccessHandler(logoutSuccessHandler())
-//                        .invalidateHttpSession(true)
-//                        .clearAuthentication(true)
-//                )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 );
@@ -115,21 +107,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    // Xử lý khi logout thành công
-//    @Bean
-//    public LogoutSuccessHandler logoutSuccessHandler() {
-//        return (request, response, authentication) -> {
-//            String token = tokenProvider.getTokenFromRequest(request);
-//            if (token != null) {
-//                long timeRemaining = tokenProvider.getTimeRemainingOfToken(token);
-//                blackListToken.addTokenIntoBlackList(token, timeRemaining);
-//            }
-//            response.setStatus(HttpStatus.OK.value());
-//            response.getWriter().write("Logout successful");
-//            SecurityContextHolder.clearContext();
-//        };
-//    }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {

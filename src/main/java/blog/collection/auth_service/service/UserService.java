@@ -6,6 +6,7 @@ import blog.collection.auth_service.dto.requestDTO.ResetPasswordRequestDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ChangePasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ResetPasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
+import blog.collection.auth_service.dto.responseDTO.userResponseDTO.UserDetailDTO;
 
 public interface UserService {
     BaseResponse<String> sendEmailToResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO);
@@ -13,4 +14,6 @@ public interface UserService {
     BaseResponse<ResetPasswordResponseDTO> resetPassword(ResetPasswordDataDTO resetPasswordDataDTO, String token);
 
     BaseResponse<ChangePasswordResponseDTO> changePassword(ChangePasswordDataDTO data, String username);
+
+    BaseResponse<UserDetailDTO> userDetailInfo(String userId);
 }

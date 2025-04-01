@@ -8,6 +8,8 @@ import blog.collection.auth_service.dto.requestDTO.ResetPasswordRequestDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ChangePasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ResetPasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
+import blog.collection.auth_service.dto.responseDTO.userResponseDTO.UserDetailDTO;
+import blog.collection.auth_service.entity.User;
 import blog.collection.auth_service.entity.UserAuthMethod;
 import blog.collection.auth_service.exception.EmailVerificationException;
 import blog.collection.auth_service.exception.InputValidationException;
@@ -85,4 +87,20 @@ public class UserServiceImpl implements UserService {
         return new BaseResponse<>(HttpStatus.OK.value(), CommonString.CHANGE_PASSWORD_SUCCESSFULLY, responseData);
     }
 
+    @Override
+    public BaseResponse<UserDetailDTO> userDetailInfo(String userId) {
+        long parsedUserId;
+        try {
+            if (userId == null) {
+                throw new UserIsNotPresentException(CommonString.CAN_NOT_FIND_ACCOUNT);
+            }
+            parsedUserId = Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            throw new InputValidationException(CommonString.CAN_NOT_FIND_ACCOUNT);
+        }
+
+        User user = userRepository.findById(parsedUserId).orElseThrow(() -> new UserIsNotPresentException(CommonString.CAN_NOT_FIND_ACCOUNT));
+        UserDetailDTO userDetailDTO = Mapper.mapEntityToDto(user, UserDetailDTO.class);
+        return new BaseResponse<>(HttpStatus.OK.value(), userDetailDTO);
+    }
 }

@@ -14,6 +14,8 @@ import blog.collection.auth_service.security.JwtTokenProvider;
 import blog.collection.auth_service.service.AuthenticationService;
 import blog.collection.auth_service.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,16 +28,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/blog-collection/auth")
 @CrossOrigin("*")
 @RequiredArgsConstructor
 public class AuthController {
-
-    //    private final AuthenticationManager authenticationManager;
-//    private final JwtTokenProvider tokenProvider;
     private final AuthenticationService authenticationService;
     private final UserService userService;
     private final RestTemplate restTemplate;
+    private final RabbitTemplate rabbitTemplate;
+
+    @Value("${queue.blacklist}")
+    private String blacklistQueue;
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<LocalLoginResponseDTO>> login(@RequestBody LoginDTO loginDTO) {
@@ -87,14 +90,8 @@ public class AuthController {
 
         String token = authorizationHeader.substring(7);
 
-        // Gọi API của Gateway Service để blacklist token
-        String gatewayUrl = "http://localhost:8082/blacklist-token";
-        ResponseEntity<String> response = restTemplate.postForEntity(gatewayUrl, token, String.class);
+        rabbitTemplate.convertAndSend(blacklistQueue, token);
 
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return ResponseEntity.ok(new BaseResponse<>(HttpStatus.OK.value(), "Logout successful", null));
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new BaseResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to logout", null));
-        }
+        return ResponseEntity.ok(new BaseResponse<>(HttpStatus.OK.value(), "Logout successful", null));
     }
 }

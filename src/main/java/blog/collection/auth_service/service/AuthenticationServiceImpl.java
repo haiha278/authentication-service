@@ -29,8 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,11 +66,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     public BaseResponse<LocalLoginResponseDTO> loginLocalUser(LoginDTO loginDTO) {
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        CustomUserDetail customUserDetail = (CustomUserDetail) authentication.getPrincipal();
+
         UserAuthMethod userInfo = userAuthMethodRepository
                 .findByUsernameAndAuthProvider(loginDTO.getUsername(), AuthProvider.LOCAL)
                 .orElseThrow(() -> new UsernameNotFoundException(CommonString.USERNAME_NOT_FOUND));
@@ -87,6 +88,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 userInfo.getUser().getId(),
                 userInfo.getId()
         );
+
         LocalLoginResponseDTO localLoginResponseDTO = new LocalLoginResponseDTO(userInfo.getUsername(), token, refreshToken);
         return new BaseResponse<>(HttpStatus.OK.value(), "Login successful", localLoginResponseDTO);
     }
@@ -121,9 +123,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AddLocalAuthenticationUserResponseDTO addUserAuthentication(String token) {
         try {
             UserVerificationData data = validate.verifyToken(token, UserVerificationData.class);
-            User inputUserFromRedis = data.getUser(); // Đây là user từ phía client (chưa có id)
-            System.out.println("data:" + inputUserFromRedis);
-            // 1. Tìm user theo email
+            User inputUserFromRedis = data.getUser();
+
             User user;
             Optional<User> existingUserOpt = userRepository.findByEmail(inputUserFromRedis.getEmail());
 
@@ -131,7 +132,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user = existingUserOpt.get();
             } else {
                 inputUserFromRedis.setStatus(true);
-                user = userRepository.save(inputUserFromRedis); // Lúc này user có id
+                user = userRepository.save(inputUserFromRedis);
             }
             if (!userAuthMethodRepository.existsByAuthProviderAndUser(AuthProvider.LOCAL, user)) {
                 UserAuthMethod userAuthMethod = new UserAuthMethod();

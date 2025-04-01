@@ -18,4 +18,9 @@ public class BaseResponse<T> {
     public BaseResponse(T responseData) {
         this.responseData = responseData;
     }
+
+    public BaseResponse(int responseCode, T responseData) {
+        this.responseCode = responseCode;
+        this.responseData = responseData;
+    }
 }

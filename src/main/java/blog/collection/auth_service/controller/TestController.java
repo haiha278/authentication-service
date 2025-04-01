@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class TestController {
-    @GetMapping("/protected")
+    @GetMapping("/auth/protected")
     public String protectedEndpoint() {
         return "Protected endpoint accessed";
     }

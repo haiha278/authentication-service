@@ -5,6 +5,9 @@ import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.ErrorResponse;
@@ -56,5 +59,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserIsNotPresentException.class)
     public ResponseEntity<Object> handlerUserIsNotPresentException(UserIsNotPresentException e, HttpServletRequest httpServletRequest) {
         return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), e.getMessage(), httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Object> handlerBadCredentialsException(BadCredentialsException e, HttpServletRequest httpServletRequest) {
+        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Invalid username or password", httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<Object> handlerDisabledException(DisabledException e, HttpServletRequest httpServletRequest) {
+        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), HttpStatus.FORBIDDEN.getReasonPhrase(), "Account is disabled", httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<Object> handlerLockedException(LockedException e, HttpServletRequest httpServletRequest) {
+        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.LOCKED.value(), HttpStatus.LOCKED.getReasonPhrase(), "Account is locked", httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
     }
 }
