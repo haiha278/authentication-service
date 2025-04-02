@@ -1,51 +1,17 @@
-package blog.collection.auth_service.service;
+package blog.collection.auth_service.dto;
 
-import blog.collection.auth_service.common.AuthProvider;
-import blog.collection.auth_service.common.CommonString;
-import blog.collection.auth_service.common.RoleName;
-import blog.collection.auth_service.dto.requestDTO.AddLocalAuthenticationUserRequestDTO;
-import blog.collection.auth_service.dto.requestDTO.LoginDTO;
-import blog.collection.auth_service.dto.requestDTO.UserVerificationData;
-import blog.collection.auth_service.dto.responseDTO.authResponseDTO.AddLocalAuthenticationUserResponseDTO;
-import blog.collection.auth_service.dto.responseDTO.authResponseDTO.LocalLoginResponseDTO;
-import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
-import blog.collection.auth_service.entity.User;
-import blog.collection.auth_service.entity.UserAuthMethod;
-import blog.collection.auth_service.exception.CannotSendMessageException;
-import blog.collection.auth_service.exception.CreatedLocalUserFailException;
-import blog.collection.auth_service.exception.InputValidationException;
-import blog.collection.auth_service.exception.UsernameNotFoundException;
-import blog.collection.auth_service.mapper.Mapper;
-import blog.collection.auth_service.repository.RoleRepository;
-import blog.collection.auth_service.repository.UserAuthMethodRepository;
-import blog.collection.auth_service.repository.UserRepository;
-import blog.collection.auth_service.security.CustomUserDetail;
-import blog.collection.auth_service.security.JwtTokenProvider;
-import blog.collection.auth_service.utils.EmailUtils;
-import blog.collection.auth_service.utils.Validate;
-import jakarta.mail.MessagingException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import lombok.Data;
 
-import java.util.Collections;
-import java.util.Optional;
+@Data
+public class UserMessage {
+    private String name;
+    private String email;
+    private String phoneNumber;
+    private String avatar;
+    private boolean status;
+}
+
+------------------------------------------------------------------------------------------------------------------------------------
 
 
 @Service
@@ -68,7 +34,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     public BaseResponse<LocalLoginResponseDTO> loginLocalUser(LoginDTO loginDTO) {
-
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword())
         );
@@ -127,27 +92,40 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             UserVerificationData data = validate.verifyToken(token, UserVerificationData.class);
             User inputUserFromRedis = data.getUser();
 
-            User user;
-            Optional<User> existingUserOpt = userRepository.findByEmail(inputUserFromRedis.getEmail());
+            // Tạo message để gửi qua RabbitMQ
+            UserMessage userMessage = new UserMessage();
+            userMessage.setName(inputUserFromRedis.getName());
+            userMessage.setEmail(inputUserFromRedis.getEmail());
+            userMessage.setPhoneNumber(inputUserFromRedis.getPhoneNumber());
+            userMessage.setAvatar(inputUserFromRedis.getAvatar());
+            userMessage.setStatus(true);
 
-            if (existingUserOpt.isPresent()) {
-                user = existingUserOpt.get();
-            } else {
-                inputUserFromRedis.setStatus(true);
-                user = userRepository.save(inputUserFromRedis);
+            // Gửi message và nhận User ID từ User Service
+            Long userId = (Long) rabbitTemplate.convertSendAndReceive(
+                "user.exchange",          // Exchange
+                "user.create",            // Routing key
+                userMessage,              // Message
+                message -> {
+                    message.getMessageProperties().setReplyTo("user.create.reply.queue"); // Reply Queue
+                    return message;
+                }
+            );
+
+            if (userId == null) {
+                throw new CreatedLocalUserFailException("Failed to create user in User Service");
             }
-            if (!userAuthMethodRepository.existsByAuthProviderAndUser(AuthProvider.LOCAL, user)) {
-                UserAuthMethod userAuthMethod = new UserAuthMethod();
-                userAuthMethod.setUser(user);
-                userAuthMethod.setRole(roleRepository.findByRoleName(RoleName.ROLE_USER)
-                        .orElseThrow(() -> new RuntimeException("Role not found")));
-                userAuthMethod.setAuthProvider(AuthProvider.LOCAL);
-                userAuthMethod.setUsername(data.getUsername());
-                userAuthMethod.setPasswordHash(passwordEncoder.encode(data.getPassword()));
-                UserAuthMethod savedLocalAuthenticationUser = userAuthMethodRepository.saveAndFlush(userAuthMethod);
-                return Mapper.mapEntityToDto(savedLocalAuthenticationUser, AddLocalAuthenticationUserResponseDTO.class);
-            }
-            return null;
+
+            // Lưu UserAuthMethod với User ID nhận được
+            UserAuthMethod userAuthMethod = new UserAuthMethod();
+            userAuthMethod.setUser(new User(userId)); // Sử dụng User ID từ User Service
+            userAuthMethod.setRole(roleRepository.findByRoleName(RoleName.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Role not found")));
+            userAuthMethod.setAuthProvider(AuthProvider.LOCAL);
+            userAuthMethod.setUsername(data.getUsername());
+            userAuthMethod.setPasswordHash(passwordEncoder.encode(data.getPassword()));
+            UserAuthMethod savedLocalAuthenticationUser = userAuthMethodRepository.saveAndFlush(userAuthMethod);
+
+            return Mapper.mapEntityToDto(savedLocalAuthenticationUser, AddLocalAuthenticationUserResponseDTO.class);
         } catch (Exception e) {
             logger.error("Error occurred while adding user authentication: ", e);
             throw new CreatedLocalUserFailException(CommonString.CAN_NOT_CREATE_NEW_USER);
@@ -159,5 +137,76 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         UserAuthMethod userAuthMethod = userAuthMethodRepository.findByProviderUserIdAndAuthProvider(providerUserId, AuthProvider.GOOGLE).orElseThrow(() -> new OAuth2AuthenticationException(CommonString.CAN_NOT_LOGIN_BY_GOOGLE));
         String token = tokenProvider.generateToken(userAuthMethod.getUsername(), AuthProvider.GOOGLE, userAuthMethod.getUser().getId(), userAuthMethod.getId());
         return new BaseResponse<>(HttpStatus.OK.value(), CommonString.LOGIN_SUCCESSFULLY, token);
+    }
+}
+
+
+
+2. User Service
+-------------------------------------------------------------------------------------------------
+package blog.collection.user_service.dto;
+
+import lombok.Data;
+
+@Data
+public class UserMessage {
+    private String name;
+    private String email;
+    private String phoneNumber;
+    private String avatar;
+    private boolean status;
+}
+
+---------------------------------------------------------------------------------------
+
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @RabbitListener(queues = "user.create.queue")
+    public Long handleUserCreation(UserMessage userMessage) {
+        // Tạo đối tượng User từ message
+        User user = new User();
+        user.setName(userMessage.getName());
+        user.setEmail(userMessage.getEmail());
+        user.setPhoneNumber(userMessage.getPhoneNumber());
+        user.setAvatar(userMessage.getAvatar());
+        user.setStatus(userMessage.isStatus());
+
+        // Lưu User vào cơ sở dữ liệu
+        User savedUser = userRepository.save(user);
+
+        // Trả về User ID
+        return savedUser.getId();
+    }
+}
+
+
+---------------------------------------------------------------------------------------
+
+
+
+package blog.collection.user_service.config;
+
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.Declarables;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class RabbitMQConfig {
+
+    @Bean
+    public Declarables declarables() {
+        return new Declarables(
+            new DirectExchange("user.exchange"),
+            new Queue("user.create.queue"),
+            new Queue("user.create.reply.queue"), // Reply Queue
+            new Binding("user.create.queue", Binding.DestinationType.QUEUE, "user.exchange", "user.create", null),
+            new Binding("user.create.reply.queue", Binding.DestinationType.QUEUE, "user.exchange", "user.create.reply", null)
+        );
     }
 }
