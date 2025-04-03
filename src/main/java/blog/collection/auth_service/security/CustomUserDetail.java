@@ -51,7 +51,7 @@ public class CustomUserDetail implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return userAuthMethod.getUser().isStatus();
+        return true;
     }
 
     public static CustomUserDetail mapToCustomUserDetail(UserAuthMethod userAuthMethod) {

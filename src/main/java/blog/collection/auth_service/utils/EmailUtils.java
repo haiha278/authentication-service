@@ -1,9 +1,9 @@
 package blog.collection.auth_service.utils;
 
 import blog.collection.auth_service.common.CommonString;
+import blog.collection.auth_service.dto.requestDTO.AddLocalAuthenticationUserRequestDTO;
 import blog.collection.auth_service.dto.requestDTO.ResetPasswordRequestDTO;
 import blog.collection.auth_service.dto.requestDTO.UserVerificationData;
-import blog.collection.auth_service.entity.User;
 import blog.collection.auth_service.exception.EmailVerificationException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -51,7 +51,7 @@ public class EmailUtils {
                     "<p style=\"font-size:14px;color:rgba(69,80,86,0.7411764705882353);line-height:18px;margin:0 0 0\">© <strong><a>noreply@blog-collection.id.vn</a></strong></p>" +
                     "</td></tr><tr><td style=\"height:80px\"> </td></tr></tbody></table></td></tr></tbody></table></div>";
 
-    public void sendToVerifyEmail(User user, String username, String password) throws MessagingException {
+    public void sendToVerifyEmail(AddLocalAuthenticationUserRequestDTO userData) throws MessagingException {
         String token = UUID.randomUUID().toString();
 
         String emailContent = EMAIL_TEMPLATE
@@ -61,7 +61,7 @@ public class EmailUtils {
                 .replace("{ACTION_BUTTON}", "Verify Now!")
                 .replace("{ACTION_FOOTER}", "Blog Collection requires verification whenever an email address is selected to register for an account. You cannot access your account until you verify it.");
 
-        sendEmail(user.getEmail(), "Email Verification", emailContent, new UserVerificationData(user, username, password), token);
+        sendEmail(userData.getEmail(), "Email Verification", emailContent, userData, token);
     }
 
     public void sentToResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO) throws MessagingException {
@@ -86,7 +86,7 @@ public class EmailUtils {
 
         try {
             if (data != null) {
-                redisTemplate.opsForValue().set(token, data, EXPIRATION_TIME, TimeUnit.HOURS);
+                redisTemplate.opsForValue().set(CommonString.VERIFY_EMAIL_KEY_PREFIX + token, data, EXPIRATION_TIME, TimeUnit.HOURS);
             }
             javaMailSender.send(mimeMessage);
         } catch (Exception e) {

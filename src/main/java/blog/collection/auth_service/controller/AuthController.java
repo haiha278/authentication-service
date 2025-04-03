@@ -1,6 +1,6 @@
 package blog.collection.auth_service.controller;
 
-import blog.collection.auth_service.common.AuthProvider;
+
 import blog.collection.auth_service.common.CommonString;
 import blog.collection.auth_service.dto.requestDTO.*;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.AddLocalAuthenticationUserResponseDTO;
@@ -8,24 +8,19 @@ import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ChangePasswo
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.LocalLoginResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.authResponseDTO.ResetPasswordResponseDTO;
 import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
-import blog.collection.auth_service.entity.User;
-import blog.collection.auth_service.security.CustomUserDetail;
-import blog.collection.auth_service.security.JwtTokenProvider;
+
 import blog.collection.auth_service.service.AuthenticationService;
-import blog.collection.auth_service.service.UserService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/blog-collection/auth")
@@ -33,8 +28,6 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthenticationService authenticationService;
-    private final UserService userService;
-    private final RestTemplate restTemplate;
     private final RabbitTemplate rabbitTemplate;
 
     @Value("${queue.blacklist}")
@@ -69,17 +62,17 @@ public class AuthController {
 
     @PostMapping("/reset/verify")
     public ResponseEntity<BaseResponse<String>> sendEmailToResetPassword(@RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
-        return new ResponseEntity<>(userService.sendEmailToResetPassword(resetPasswordRequestDTO), HttpStatus.OK);
+        return new ResponseEntity<>(authenticationService.sendEmailToResetPassword(resetPasswordRequestDTO), HttpStatus.OK);
     }
 
     @GetMapping("/reset-password")
     public ResponseEntity<BaseResponse<ResetPasswordResponseDTO>> resetPassword(@RequestParam("token") String token, @RequestBody ResetPasswordDataDTO resetPasswordDataDTO) {
-        return new ResponseEntity<>(userService.resetPassword(resetPasswordDataDTO, token), HttpStatus.OK);
+        return new ResponseEntity<>(authenticationService.resetPassword(resetPasswordDataDTO, token), HttpStatus.OK);
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<BaseResponse<ChangePasswordResponseDTO>> changePassword(@RequestHeader("X-Username") String username, @RequestBody ChangePasswordDataDTO changePasswordDataDTO) {
-        return new ResponseEntity<>(userService.changePassword(changePasswordDataDTO, username), HttpStatus.OK);
+        return new ResponseEntity<>(authenticationService.changePassword(changePasswordDataDTO, username), HttpStatus.OK);
     }
 
     @PostMapping("/logout")

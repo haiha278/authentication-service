@@ -46,7 +46,7 @@ public class Validate {
     public void validateAccountExisted(String username, String email) {
         validateInputData(username, null, CommonString.DATA_CAN_NOT_BE_NULL);
         validateInputData(email, CommonString.EMAIL_REGEX, CommonString.WRONG_EMAIL_FORMAT);
-        if (!userAuthMethodRepository.existsByUsernameAndUserEmail(username, email)) {
+        if (!userAuthMethodRepository.existsByUsernameAndEmail(username, email)) {
             throw new UserIsNotPresentException(CommonString.CAN_NOT_FIND_ACCOUNT);
         }
     }

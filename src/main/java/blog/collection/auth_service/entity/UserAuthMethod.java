@@ -19,12 +19,11 @@ public class UserAuthMethod {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(unique = true, name = "user_id")
+    private Long userId;
 
-//    @Column(name = "user_id", nullable = false)
-//    private Long userId;
+    @Column(name = "email")
+    private String email;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, name = "auth_provider")
