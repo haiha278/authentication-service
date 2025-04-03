@@ -33,6 +33,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,7 +66,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         UserAuthMethod userInfo = userAuthMethodRepository
                 .findByUsernameAndAuthProvider(loginDTO.getUsername(), AuthProvider.LOCAL)
-                .orElseThrow(() -> new UsernameNotFoundException(CommonString.USERNAME_NOT_FOUND));
+                .orElseThrow(() -> new InternalAuthenticationServiceException("Invalid username or password"));
 
         String token = tokenProvider.generateToken(
                 userInfo.getUsername(),
@@ -164,7 +165,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public BaseResponse<ResetPasswordResponseDTO> resetPassword(ResetPasswordDataDTO resetPasswordDataDTO, String token) {
-        ResetPasswordRequestDTO resetPasswordRequestDTO = validate.verifyToken(token, ResetPasswordRequestDTO.class);
+        ResetPasswordRequestDTO resetPasswordRequestDTO = validate.verifyToken(CommonString.VERIFY_EMAIL_KEY_PREFIX + token, ResetPasswordRequestDTO.class);
 
         validate.validateInputDataForResetPassword(resetPasswordDataDTO);
 

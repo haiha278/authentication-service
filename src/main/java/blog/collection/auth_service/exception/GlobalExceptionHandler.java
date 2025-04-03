@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,11 +20,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Object> handlerResourceNotFoundException(UsernameNotFoundException e, HttpServletRequest httpServletRequest) {
         return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase(), e.getMessage(), httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(JwtValidationException.class)
-    public ResponseEntity<Object> handlerResourceNotFoundException(JwtValidationException e, HttpServletRequest httpServletRequest) {
-        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.NOT_ACCEPTABLE.value(), HttpStatus.NOT_ACCEPTABLE.getReasonPhrase(), e.getMessage(), httpServletRequest.getRequestURI())), HttpStatus.NOT_ACCEPTABLE);
     }
 
     @ExceptionHandler(AuthenticationFailException.class)
@@ -63,12 +59,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Object> handlerBadCredentialsException(BadCredentialsException e, HttpServletRequest httpServletRequest) {
-        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Invalid username or password", httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Invalid username or password", httpServletRequest.getRequestURI())), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<Object> handlerDisabledException(DisabledException e, HttpServletRequest httpServletRequest) {
         return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.FORBIDDEN.value(), HttpStatus.FORBIDDEN.getReasonPhrase(), "Account is disabled", httpServletRequest.getRequestURI())), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(InternalAuthenticationServiceException.class)
+    public ResponseEntity<Object> handlerInternalAuthenticationServiceException(InternalAuthenticationServiceException e, HttpServletRequest request) {
+        return new ResponseEntity<>(new BaseResponse<>(new ErrorResponse(LocalDateTime.now(), HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase(), "Invalid username or password", request.getRequestURI())), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(LockedException.class)

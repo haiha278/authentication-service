@@ -86,7 +86,7 @@ public class Validate {
         if (data == null) {
             throw new EmailVerificationException(CommonString.EXPIRED_EMAIL_VERIFY_LINK);
         }
-        redisTemplate.delete(token);
+//        redisTemplate.delete(token);
         return data;
     }
 }

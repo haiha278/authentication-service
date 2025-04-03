@@ -1,10 +1,9 @@
 package blog.collection.auth_service.security;
 
 import blog.collection.auth_service.common.AuthProvider;
-import blog.collection.auth_service.common.CommonString;
-import blog.collection.auth_service.exception.JwtValidationException;
+
 import io.jsonwebtoken.*;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
