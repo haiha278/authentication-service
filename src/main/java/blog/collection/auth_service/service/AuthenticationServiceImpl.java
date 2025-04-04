@@ -34,7 +34,9 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -53,7 +55,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final RabbitTemplate rabbitTemplate;
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
 
-    private void sendVerificationEmail(AddLocalAuthenticationUserRequestDTO userData) throws MessagingException {
+    private void sendVerificationEmail(CreateUserTransferMessage userData) throws MessagingException {
         emailUtils.sendToVerifyEmail(userData);
     }
 
@@ -85,9 +87,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return new BaseResponse<>(HttpStatus.OK.value(), "Login successful", localLoginResponseDTO);
     }
 
-    public BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO) {
+    public BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO, MultipartFile avatar) {
         try {
-            validate.validateRegistrationInput(addLocalAuthenticationUserRequestDTO);
+            validate.validateRegistrationInput(addLocalAuthenticationUserRequestDTO, avatar);
 
             if (userAuthMethodRepository.existsByUsername(addLocalAuthenticationUserRequestDTO.getUsername())) {
                 throw new CreatedLocalUserFailException(CommonString.USERNAME_IS_EXISTED);
@@ -96,10 +98,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (userAuthMethodRepository.existsByAuthProviderAndEmail(AuthProvider.LOCAL, addLocalAuthenticationUserRequestDTO.getEmail())) {
                 throw new CreatedLocalUserFailException(CommonString.EMAIL_IS_EXISTED);
             }
+            CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
+                    .name(addLocalAuthenticationUserRequestDTO.getName())
+                    .email(addLocalAuthenticationUserRequestDTO.getEmail())
+                    .avatarBytes(avatar.getBytes())
+                    .gender(addLocalAuthenticationUserRequestDTO.getGender())
+                    .phoneNumber(addLocalAuthenticationUserRequestDTO.getPhoneNumber())
+                    .dateOfBirth(addLocalAuthenticationUserRequestDTO.getDateOfBirth())
+                    .username(addLocalAuthenticationUserRequestDTO.getUsername())
+                    .passwordHash(addLocalAuthenticationUserRequestDTO.getPasswordHash())
+                    .build();
 
-            sendVerificationEmail(addLocalAuthenticationUserRequestDTO);
+            sendVerificationEmail(transferMessage);
             return new BaseResponse<>(HttpStatus.OK.value(), HttpStatus.OK.getReasonPhrase(), CommonString.SEND_MESSAGE_TO_EMAIL_SUCCESSFULLY);
-        } catch (InputValidationException e) {
+        } catch (InputValidationException | IOException e) {
             return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), e.getMessage());
         } catch (MessagingException e) {
             throw new CannotSendMessageException(CommonString.CAN_NOT_SEND_EMAIL);
@@ -110,21 +122,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public AddLocalAuthenticationUserResponseDTO addUserAuthentication(String token) {
         try {
-            AddLocalAuthenticationUserRequestDTO dataFromRedis = validate.verifyToken(CommonString.VERIFY_EMAIL_KEY_PREFIX + token, AddLocalAuthenticationUserRequestDTO.class);
+            CreateUserTransferMessage dataFromRedis = validate.verifyToken(CommonString.VERIFY_EMAIL_KEY_PREFIX + token, CreateUserTransferMessage.class);
 
-            CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
-                    .name(dataFromRedis.getName())
-                    .email(dataFromRedis.getEmail())
-                    .avatar(dataFromRedis.getAvatar())
-                    .gender(dataFromRedis.getGender())
-                    .phoneNumber(dataFromRedis.getPhoneNumber())
-                    .dateOfBirth(dataFromRedis.getDateOfBirth())
-                    .build();
+//            CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
+//                    .name(dataFromRedis.getName())
+//                    .email(dataFromRedis.getEmail())
+//                    .avatar(dataFromRedis.getAvatar())
+//                    .gender(dataFromRedis.getGender())
+//                    .phoneNumber(dataFromRedis.getPhoneNumber())
+//                    .dateOfBirth(dataFromRedis.getDateOfBirth())
+//                    .build();
 
             Long userId = (Long) rabbitTemplate.convertSendAndReceive(
                     "user.exchange",
                     "user.create",
-                    transferMessage,
+                    dataFromRedis,
                     message -> {
                         message.getMessageProperties().setReplyTo("user.create.reply.queue"); // Reply Queue
                         return message;

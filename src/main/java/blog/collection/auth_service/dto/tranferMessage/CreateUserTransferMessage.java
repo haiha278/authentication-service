@@ -12,7 +12,10 @@ public class CreateUserTransferMessage implements Serializable {
     private String name;
     private String email;
     private String phoneNumber;
-    private String avatar;
+    private String avatar; // URL sau khi upload
     private String gender;
     private LocalDate dateOfBirth;
+    private byte[] avatarBytes;
+    private String username;
+    private String passwordHash;
 }

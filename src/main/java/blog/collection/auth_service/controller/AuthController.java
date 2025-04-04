@@ -15,12 +15,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/blog-collection/auth")
@@ -38,9 +40,10 @@ public class AuthController {
         return new ResponseEntity<>(authenticationService.loginLocalUser(loginDTO), HttpStatus.OK);
     }
 
-    @PostMapping("/sign-up")
-    public ResponseEntity<BaseResponse<String>> verifyEmail(@RequestBody AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO) {
-        BaseResponse<String> response = authenticationService.verifyEmail(addLocalAuthenticationUserRequestDTO);
+    @PostMapping(value = "/sign-up", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BaseResponse<String>> verifyEmail(@RequestPart("userData") AddLocalAuthenticationUserRequestDTO userData,
+                                                            @RequestPart(value = "avatar", required = false) MultipartFile avatarFile) {
+        BaseResponse<String> response = authenticationService.verifyEmail(userData, avatarFile);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

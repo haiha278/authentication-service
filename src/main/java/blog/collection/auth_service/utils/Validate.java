@@ -13,7 +13,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,13 +36,14 @@ public class Validate {
         }
     }
 
-    public void validateRegistrationInput(AddLocalAuthenticationUserRequestDTO requestDTO) {
+    public void validateRegistrationInput(AddLocalAuthenticationUserRequestDTO requestDTO, MultipartFile multipartFile) {
         if (requestDTO == null) {
             throw new InputValidationException(CommonString.DATA_CAN_NOT_BE_NULL);
         }
         validateInputData(requestDTO.getPhoneNumber(), CommonString.PHONE_REGEX, CommonString.WRONG_PHONE_FORMAT);
         validateInputData(requestDTO.getEmail(), CommonString.EMAIL_REGEX, CommonString.WRONG_EMAIL_FORMAT);
         validateInputData(requestDTO.getPasswordHash(), CommonString.PASSWORD_FORMAT, CommonString.WRONG_PASSWORD_FORMAT);
+        validateImage(multipartFile);
     }
 
     public void validateAccountExisted(String username, String email) {
@@ -78,6 +81,39 @@ public class Validate {
         }
         if (!passwordEncoder.matches(data.getCurrentPassword(), currentPassword)) {
             throw new InputValidationException(CommonString.CURRENT_PASSWORD_WRONG);
+        }
+    }
+
+    public void validateImage(MultipartFile multipartFile) {
+        if (multipartFile != null && !multipartFile.isEmpty()) {
+            List<String> validImageContentTypes = Arrays.asList(
+                    "image/jpeg",
+                    "image/png",
+                    "image/gif",
+                    "image/bmp"
+            );
+
+            // Danh sách phần mở rộng hợp lệ
+            List<String> validImageExtensions = Arrays.asList(
+                    "jpg", "jpeg", "png", "gif", "bmp"
+            );
+
+            // Kiểm tra Content-Type
+            String contentType = multipartFile.getContentType();
+            if (contentType == null || !validImageContentTypes.contains(contentType)) {
+                throw new InputValidationException("File phải là ảnh (jpg, png, gif, bmp)");
+            }
+
+            // Kiểm tra phần mở rộng (tùy chọn, để tăng độ chắc chắn)
+            String originalFilename = multipartFile.getOriginalFilename();
+            if (originalFilename != null) {
+                String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                if (!validImageExtensions.contains(extension)) {
+                    throw new InputValidationException("Phần mở rộng file không hợp lệ (phải là jpg, jpeg, png, gif, bmp)");
+                }
+            } else {
+                throw new InputValidationException("Không thể xác định tên file");
+            }
         }
     }
 

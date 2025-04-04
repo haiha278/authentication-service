@@ -9,11 +9,12 @@ import blog.collection.auth_service.dto.responseDTO.commonResponse.BaseResponse;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AuthenticationService {
     AddLocalAuthenticationUserResponseDTO addUserAuthentication(String token);
 
-    BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO);
+    BaseResponse<String> verifyEmail(AddLocalAuthenticationUserRequestDTO addLocalAuthenticationUserRequestDTO, MultipartFile multipartFile);
 
     BaseResponse<String> sendEmailToResetPassword(ResetPasswordRequestDTO resetPasswordRequestDTO);
 

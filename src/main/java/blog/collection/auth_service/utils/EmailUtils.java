@@ -4,6 +4,7 @@ import blog.collection.auth_service.common.CommonString;
 import blog.collection.auth_service.dto.requestDTO.AddLocalAuthenticationUserRequestDTO;
 import blog.collection.auth_service.dto.requestDTO.ResetPasswordRequestDTO;
 import blog.collection.auth_service.dto.requestDTO.UserVerificationData;
+import blog.collection.auth_service.dto.tranferMessage.CreateUserTransferMessage;
 import blog.collection.auth_service.exception.EmailVerificationException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -51,7 +52,7 @@ public class EmailUtils {
                     "<p style=\"font-size:14px;color:rgba(69,80,86,0.7411764705882353);line-height:18px;margin:0 0 0\">© <strong><a>noreply@blog-collection.id.vn</a></strong></p>" +
                     "</td></tr><tr><td style=\"height:80px\"> </td></tr></tbody></table></td></tr></tbody></table></div>";
 
-    public void sendToVerifyEmail(AddLocalAuthenticationUserRequestDTO userData) throws MessagingException {
+    public void sendToVerifyEmail(CreateUserTransferMessage userData) throws MessagingException {
         String token = UUID.randomUUID().toString();
 
         String emailContent = EMAIL_TEMPLATE
