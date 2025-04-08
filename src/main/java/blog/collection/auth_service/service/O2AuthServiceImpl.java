@@ -45,12 +45,11 @@ public class O2AuthServiceImpl implements OAuth2Service {
     }
 
     private Long createUserIfNotExisted(String email, String name, String avatar, String gender) {
-        CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
-                .name(name)
-                .email(email)
-                .avatar(avatar)
-                .gender(gender)
-                .build();
+        CreateUserTransferMessage transferMessage = new CreateUserTransferMessage();
+        transferMessage.setName(name);
+        transferMessage.setEmail(email);
+        transferMessage.setAvatar(avatar);
+        transferMessage.setGender(gender);
 
         return (Long) rabbitTemplate.convertSendAndReceive(
                 "user.exchange",          // Exchange
