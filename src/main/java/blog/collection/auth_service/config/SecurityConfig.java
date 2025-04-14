@@ -79,7 +79,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/blog-collection/auth/**").permitAll()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 // Cấu hình OAuth2 Login
                 .oauth2Login(oauth2 -> oauth2
