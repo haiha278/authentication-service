@@ -20,8 +20,6 @@ public class AddLocalAuthenticationUserRequestDTO {
 
     private String phoneNumber;
 
-    private String avatar;
-
     private String gender;
 
     private LocalDate dateOfBirth;

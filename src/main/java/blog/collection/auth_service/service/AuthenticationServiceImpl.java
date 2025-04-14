@@ -98,16 +98,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (userAuthMethodRepository.existsByAuthProviderAndEmail(AuthProvider.LOCAL, addLocalAuthenticationUserRequestDTO.getEmail())) {
                 throw new CreatedLocalUserFailException(CommonString.EMAIL_IS_EXISTED);
             }
-            CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
-                    .name(addLocalAuthenticationUserRequestDTO.getName())
-                    .email(addLocalAuthenticationUserRequestDTO.getEmail())
-                    .avatarBytes(avatar.getBytes())
-                    .gender(addLocalAuthenticationUserRequestDTO.getGender())
-                    .phoneNumber(addLocalAuthenticationUserRequestDTO.getPhoneNumber())
-                    .dateOfBirth(addLocalAuthenticationUserRequestDTO.getDateOfBirth())
-                    .username(addLocalAuthenticationUserRequestDTO.getUsername())
-                    .passwordHash(addLocalAuthenticationUserRequestDTO.getPasswordHash())
-                    .build();
+//            CreateUserTransferMessage transferMessage = CreateUserTransferMessage.builder()
+//                    .name(addLocalAuthenticationUserRequestDTO.getName())
+//                    .email(addLocalAuthenticationUserRequestDTO.getEmail())
+//                    .avatarBytes(avatar.getBytes())
+//                    .gender(addLocalAuthenticationUserRequestDTO.getGender())
+//                    .phoneNumber(addLocalAuthenticationUserRequestDTO.getPhoneNumber())
+//                    .dateOfBirth(addLocalAuthenticationUserRequestDTO.getDateOfBirth())
+//                    .username(addLocalAuthenticationUserRequestDTO.getUsername())
+//                    .passwordHash(addLocalAuthenticationUserRequestDTO.getPasswordHash())
+//                    .build();
+
+            CreateUserTransferMessage transferMessage = new CreateUserTransferMessage();
+            transferMessage.setName(addLocalAuthenticationUserRequestDTO.getName());
+            transferMessage.setEmail(addLocalAuthenticationUserRequestDTO.getEmail());
+            transferMessage.setGender(addLocalAuthenticationUserRequestDTO.getGender());
+            transferMessage.setAvatarBytes(avatar.getBytes());
+            transferMessage.setPhoneNumber(addLocalAuthenticationUserRequestDTO.getPhoneNumber());
+            transferMessage.setDateOfBirth(addLocalAuthenticationUserRequestDTO.getDateOfBirth());
+            transferMessage.setUsername(addLocalAuthenticationUserRequestDTO.getUsername());
+            transferMessage.setPasswordHash(addLocalAuthenticationUserRequestDTO.getPasswordHash());
 
             sendVerificationEmail(transferMessage);
             return new BaseResponse<>(HttpStatus.OK.value(), HttpStatus.OK.getReasonPhrase(), CommonString.SEND_MESSAGE_TO_EMAIL_SUCCESSFULLY);
