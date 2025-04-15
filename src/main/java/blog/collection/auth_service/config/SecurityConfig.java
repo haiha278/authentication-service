@@ -1,16 +1,17 @@
 package blog.collection.auth_service.config;
 
-//import blog.collection.auth_service.security.BlackListToken;
+
 import blog.collection.auth_service.security.CustomUserDetailService;
-//import blog.collection.auth_service.security.JwtAuthenticationFilter;
+
+
 import blog.collection.auth_service.security.JwtTokenProvider;
-import blog.collection.auth_service.service.AuthenticationService;
+
 import blog.collection.auth_service.service.OAuth2Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,19 +22,17 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import blog.collection.common.exception.CommonAuthenticationEntryPoint;
 
 import java.util.List;
 
@@ -47,14 +46,10 @@ public class SecurityConfig {
 
     private final JwtTokenProvider tokenProvider;
 
-//    private final BlackListToken blackListToken;
-
     private final OAuth2Service oAuth2Service;
 
-//    @Bean
-//    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-//        return new JwtAuthenticationFilter(tokenProvider, customUserDetailService, blackListToken);
-//    }
+    private final CommonAuthenticationEntryPoint entryPoint;
+
 
     @Bean
     public AuthenticationManager jwtAuthenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -67,30 +62,22 @@ public class SecurityConfig {
     }
 
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(customUserDetailService)
-                .passwordEncoder(passwordEncoder());
+        auth.userDetailsService(customUserDetailService).passwordEncoder(passwordEncoder());
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/blog-collection/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/blog-collection/auth/**").permitAll()
+                        .anyRequest().authenticated())
+//                .exceptionHandling(eh -> eh.authenticationEntryPoint(authEntryPoint))
                 // Cấu hình OAuth2 Login
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2Service))
+                .oauth2Login(oauth2 -> oauth2.userInfoEndpoint(userInfo -> userInfo.userService(oAuth2Service))
                         .defaultSuccessUrl("/blog-collection/auth/success", true)
-                        .failureUrl("/blog-collection/auth/failure")
-                )
+                        .failureUrl("/blog-collection/auth/failure"))
 
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                );
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
         return http.build();
     }

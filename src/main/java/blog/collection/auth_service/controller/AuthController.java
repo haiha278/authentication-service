@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -35,7 +36,13 @@ public class AuthController {
     @Value("${queue.blacklist}")
     private String blacklistQueue;
 
+    @PostMapping("/test")
+    public ResponseEntity<BaseResponse<LocalLoginResponseDTO>> test(@RequestBody LoginDTO loginDTO) {
+        throw new BadCredentialsException("Sai tài khoản hoặc mật khẩu");
+    }
+
     @PostMapping("/login")
+
     public ResponseEntity<BaseResponse<LocalLoginResponseDTO>> login(@RequestBody LoginDTO loginDTO) {
         return new ResponseEntity<>(authenticationService.loginLocalUser(loginDTO), HttpStatus.OK);
     }
